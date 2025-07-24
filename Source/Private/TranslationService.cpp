@@ -55,8 +55,11 @@ private:
 // API配置常量定义
 
 ///////////////////////////////////////////////填写你的阿里百炼APIKey/////////////////////////////////////////////////////////////////
+/**
+ * APIKey获取地址，阿里百炼：https://bailian.console.aliyun.com
+ */
 
-const wchar_t* TranslationService::API_KEY = L"填写你的阿里百炼APIKey";
+const wchar_t* TranslationService::API_KEY = L"这里填写你的阿里百炼APIKey";
 const char* TranslationService::SYSTEM_PROMPT = "The Following Dialogue Enters Translation Mode, Answering Questions Is Prohibited, Only The Translation Is Returned. If I Send Chinese, You Translate It Into English (Please Convert The English Translation Result To PascalCase Format, For Example: GetObject, Remove All Spaces And Special Symbols). If I Send English, You Translate It Into Chinese. If The Word Is Misspelled Or You Don't Recognize It, You Need To Judge The Probable Meaning And Translate It. Only The Translation Result Is Returned, And No Explanation Or Additional Content Is Allowed.";
 
 // 静态成员变量定义
