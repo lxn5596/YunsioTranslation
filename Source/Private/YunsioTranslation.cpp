@@ -3,13 +3,20 @@
 #include "GlobalHotkey.h"
 #include "TranslationManager.h"
 
+// 静态变量保存Mutex句柄
+static HANDLE s_hMutex = nullptr;
+
 // 检查是否已有实例在运行
 bool YunsioTranslation::IsAlreadyRunning()
 {
-    HANDLE hMutex = CreateMutexW(nullptr, TRUE, L"Global\\YunsioTranslation_Mutex");
-    if (hMutex == nullptr || GetLastError() == ERROR_ALREADY_EXISTS)
+    s_hMutex = CreateMutexW(nullptr, TRUE, L"Global\\YunsioTranslation_Mutex");
+    if (s_hMutex == nullptr || GetLastError() == ERROR_ALREADY_EXISTS)
     {
-        if (hMutex) CloseHandle(hMutex);
+        if (s_hMutex) 
+        {
+            CloseHandle(s_hMutex);
+            s_hMutex = nullptr;
+        }
         return true;
     }
     return false;
@@ -55,8 +62,16 @@ int YunsioTranslation::Run()
     }
     
     // 清理资源
+    SystemTray::Cleanup();
     GlobalHotkey::Cleanup();
     TranslationManager::Cleanup();
+    
+    // 释放Mutex句柄
+    if (s_hMutex)
+    {
+        CloseHandle(s_hMutex);
+        s_hMutex = nullptr;
+    }
     
     return 0;
 }

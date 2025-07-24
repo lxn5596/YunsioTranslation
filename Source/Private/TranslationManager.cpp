@@ -104,29 +104,58 @@ bool TranslationManager::GetSelectedText(std::wstring& text)
     
     // 备份当前剪切板内容
     std::wstring originalClipboard;
-    GetClipboardText(originalClipboard);
+    if (!GetClipboardText(originalClipboard))
+    {
+        // 如果无法获取原始剪切板内容，记录空字符串
+        originalClipboard.clear();
+    }
+    
+    // 使用RAII确保剪切板内容恢复
+    struct ClipboardRestorer
+    {
+        std::wstring original;
+        ClipboardRestorer(const std::wstring& orig) : original(orig) {}
+        ~ClipboardRestorer() 
+        {
+            // 尝试恢复原始剪切板内容，失败也不抛异常
+            TranslationManager::SetClipboardText(original);
+        }
+    } restorer(originalClipboard);
     
     // 清空剪切板以确保获取的是新复制的内容
-    SetClipboardText(L"");
-    
-    // 模拟Ctrl+C复制选中文本
-    if (!CopySelectedText())
+    if (!SetClipboardText(L""))
     {
-        // 恢复原始剪切板内容
-        SetClipboardText(originalClipboard);
         return false;
     }
     
-    // 等待复制完成
-    Sleep(200);
+    // 模拟Ctrl+C复制选中文本，增加重试机制
+    bool copySuccess = false;
+    for (int retry = 0; retry < 3; ++retry)
+    {
+        if (CopySelectedText())
+        {
+            copySuccess = true;
+            break;
+        }
+        Sleep(50); // 重试前等待
+    }
     
-    // 获取复制的文本
-    bool success = GetClipboardText(text);
+    if (!copySuccess)
+    {
+        return false;
+    }
     
-    // 恢复原始剪切板内容
-    SetClipboardText(originalClipboard);
+    // 等待复制完成，增加超时检查
+    for (int wait = 0; wait < 10; ++wait)
+    {
+        Sleep(50);
+        if (GetClipboardText(text) && !text.empty())
+        {
+            return true;
+        }
+    }
     
-    return success && !text.empty();
+    return false;
 }
 
 /**
@@ -138,25 +167,41 @@ bool TranslationManager::GetClipboardText(std::wstring& text)
 {
     text.clear();
     
-    if (!OpenClipboard(nullptr))
-        return false;
-    
-    HANDLE hData = GetClipboardData(CF_UNICODETEXT);
-    if (hData == nullptr)
+    // 增加重试机制，处理剪切板被其他程序占用的情况
+    for (int retry = 0; retry < 5; ++retry)
     {
-        CloseClipboard();
-        return false;
+        if (OpenClipboard(nullptr))
+        {
+            HANDLE hData = GetClipboardData(CF_UNICODETEXT);
+            if (hData != nullptr)
+            {
+                wchar_t* pszText = static_cast<wchar_t*>(GlobalLock(hData));
+                if (pszText != nullptr)
+                {
+                    try
+                    {
+                        text = pszText;
+                        GlobalUnlock(hData);
+                        CloseClipboard();
+                        return !text.empty();
+                    }
+                    catch (...)
+                    {
+                        GlobalUnlock(hData);
+                        CloseClipboard();
+                        return false;
+                    }
+                }
+            }
+            CloseClipboard();
+            return false;
+        }
+        
+        // 剪切板被占用，等待后重试
+        Sleep(20);
     }
     
-    wchar_t* pszText = static_cast<wchar_t*>(GlobalLock(hData));
-    if (pszText != nullptr)
-    {
-        text = pszText;
-        GlobalUnlock(hData);
-    }
-    
-    CloseClipboard();
-    return !text.empty();
+    return false;
 }
 
 /**
@@ -166,29 +211,68 @@ bool TranslationManager::GetClipboardText(std::wstring& text)
  */
 bool TranslationManager::SetClipboardText(const std::wstring& text)
 {
-    if (!OpenClipboard(nullptr))
-        return false;
-    
-    EmptyClipboard();
-    
-    size_t size = (text.length() + 1) * sizeof(wchar_t);
-    HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, size);
-    if (hMem == nullptr)
+    // 增加重试机制，处理剪切板被其他程序占用的情况
+    for (int retry = 0; retry < 5; ++retry)
     {
-        CloseClipboard();
-        return false;
+        if (OpenClipboard(nullptr))
+        {
+            EmptyClipboard();
+            
+            if (text.empty())
+            {
+                CloseClipboard();
+                return true;
+            }
+            
+            size_t size = (text.length() + 1) * sizeof(wchar_t);
+            HGLOBAL hMem = GlobalAlloc(GMEM_MOVEABLE, size);
+            if (hMem == nullptr)
+            {
+                CloseClipboard();
+                return false;
+            }
+            
+            wchar_t* pMem = static_cast<wchar_t*>(GlobalLock(hMem));
+            if (pMem != nullptr)
+            {
+                try
+                {
+                    wcscpy_s(pMem, text.length() + 1, text.c_str());
+                    GlobalUnlock(hMem);
+                    
+                    if (SetClipboardData(CF_UNICODETEXT, hMem) != nullptr)
+                    {
+                        CloseClipboard();
+                        return true;
+                    }
+                    else
+                    {
+                        // SetClipboardData失败，需要释放内存
+                        GlobalFree(hMem);
+                    }
+                }
+                catch (...)
+                {
+                    GlobalUnlock(hMem);
+                    GlobalFree(hMem);
+                    CloseClipboard();
+                    return false;
+                }
+            }
+            else
+            {
+                GlobalFree(hMem);
+            }
+            
+            CloseClipboard();
+            return false;
+        }
+        
+        // 剪切板被占用，等待后重试
+        Sleep(20);
     }
     
-    wchar_t* pMem = static_cast<wchar_t*>(GlobalLock(hMem));
-    if (pMem != nullptr)
-    {
-        wcscpy_s(pMem, text.length() + 1, text.c_str());
-        GlobalUnlock(hMem);
-        SetClipboardData(CF_UNICODETEXT, hMem);
-    }
-    
-    CloseClipboard();
-    return true;
+    return false;
 }
 
 /**
@@ -235,21 +319,32 @@ bool TranslationManager::PasteText()
  */
 void TranslationManager::OnTranslationComplete(bool success, const std::wstring& result)
 {
+    // 使用RAII确保状态重置
+    struct StateResetter
+    {
+        ~StateResetter() { s_bTranslationInProgress = false; }
+    } resetter;
+    
     if (success && !result.empty())
     {
-        // 设置翻译结果到剪切板
-        SetClipboardText(result);
-        
-        // 等待设置完成
-        Sleep(50);
-        
-        // 粘贴翻译结果
-        PasteText();
-        
-        // 等待粘贴完成
-        Sleep(100);
+        // 设置翻译结果到剪切板，增加错误处理
+        if (SetClipboardText(result))
+        {
+            // 等待设置完成
+            Sleep(50);
+            
+            // 粘贴翻译结果，增加重试机制
+            for (int retry = 0; retry < 3; ++retry)
+            {
+                if (PasteText())
+                {
+                    break;
+                }
+                Sleep(50); // 重试前等待
+            }
+            
+            // 等待粘贴完成
+            Sleep(100);
+        }
     }
-    
-    // 重置状态
-    s_bTranslationInProgress = false;
 }

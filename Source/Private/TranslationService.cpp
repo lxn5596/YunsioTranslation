@@ -6,6 +6,55 @@
  */
 
 #include "TranslationService.h"
+#include <winhttp.h>
+#include <string>
+#include <vector>
+
+#pragma comment(lib, "winhttp.lib")
+
+// RAII类用于自动管理WinHTTP句柄
+class WinHttpHandle
+{
+public:
+    WinHttpHandle(HINTERNET handle = nullptr) : m_handle(handle) {}
+    ~WinHttpHandle() { if (m_handle) WinHttpCloseHandle(m_handle); }
+    
+    // 禁止拷贝
+    WinHttpHandle(const WinHttpHandle&) = delete;
+    WinHttpHandle& operator=(const WinHttpHandle&) = delete;
+    
+    // 支持移动
+    WinHttpHandle(WinHttpHandle&& other) noexcept : m_handle(other.m_handle) { other.m_handle = nullptr; }
+    WinHttpHandle& operator=(WinHttpHandle&& other) noexcept
+    {
+        if (this != &other)
+        {
+            if (m_handle) WinHttpCloseHandle(m_handle);
+            m_handle = other.m_handle;
+            other.m_handle = nullptr;
+        }
+        return *this;
+    }
+    
+    // 重置句柄
+    void reset(HINTERNET handle = nullptr)
+    {
+        if (m_handle) WinHttpCloseHandle(m_handle);
+        m_handle = handle;
+    }
+    
+    // 获取句柄
+    HINTERNET get() const { return m_handle; }
+    
+    // 检查是否有效
+    bool valid() const { return m_handle != nullptr; }
+    
+    // 隐式转换为HINTERNET
+    operator HINTERNET() const { return m_handle; }
+    
+private:
+    HINTERNET m_handle;
+};
 
 // API配置常量定义
 const wchar_t* TranslationService::API_URL = L"dashscope.aliyuncs.com";
@@ -73,21 +122,21 @@ bool TranslationService::TranslateAsync(const std::wstring& text, TranslationCal
         return false;
     
     // 连接到API服务器
-    HINTERNET hConnect = WinHttpConnect(
+    WinHttpHandle hConnect(WinHttpConnect(
         s_hSession,
         API_URL,
         INTERNET_DEFAULT_HTTPS_PORT,
         0
-    );
+    ));
     
-    if (hConnect == nullptr)
+    if (!hConnect.valid())
     {
         callback(false, L"连接服务器失败");
         return false;
     }
     
     // 创建请求
-    HINTERNET hRequest = WinHttpOpenRequest(
+    WinHttpHandle hRequest(WinHttpOpenRequest(
         hConnect,
         L"POST",
         L"/compatible-mode/v1/chat/completions",
@@ -95,11 +144,10 @@ bool TranslationService::TranslateAsync(const std::wstring& text, TranslationCal
         WINHTTP_NO_REFERER,
         WINHTTP_DEFAULT_ACCEPT_TYPES,
         WINHTTP_FLAG_SECURE
-    );
+    ));
     
-    if (hRequest == nullptr)
+    if (!hRequest.valid())
     {
-        WinHttpCloseHandle(hConnect);
         callback(false, L"创建请求失败");
         return false;
     }
@@ -209,8 +257,6 @@ bool TranslationService::TranslateAsync(const std::wstring& text, TranslationCal
     
     if (!result)
     {
-        WinHttpCloseHandle(hRequest);
-        WinHttpCloseHandle(hConnect);
         callback(false, L"发送请求失败");
         return false;
     }
@@ -219,8 +265,6 @@ bool TranslationService::TranslateAsync(const std::wstring& text, TranslationCal
     result = WinHttpReceiveResponse(hRequest, nullptr);
     if (!result)
     {
-        WinHttpCloseHandle(hRequest);
-        WinHttpCloseHandle(hConnect);
         callback(false, L"接收响应失败");
         return false;
     }
@@ -246,10 +290,8 @@ bool TranslationService::TranslateAsync(const std::wstring& text, TranslationCal
         }
     } while (bytesAvailable > 0);
     
-    WinHttpCloseHandle(hRequest);
-    WinHttpCloseHandle(hConnect);
-    
     // 响应数据接收完成，开始解析
+    // WinHttpHandle会自动释放句柄
     
     // 解析JSON响应
     std::wstring translatedText;

@@ -5,6 +5,7 @@
 // 静态成员变量定义
 HWND SystemTray::s_hWnd = nullptr;
 HMENU SystemTray::s_hMenu = nullptr;
+static bool s_bTrayCreated = false;  // 跟踪托盘是否已创建
 
 /**
  * @brief 创建系统托盘图标
@@ -35,7 +36,12 @@ bool SystemTray::CreateTray()
     SetTrayTooltip(nid);
     
     // 将托盘图标添加到系统托盘区域
-    return Shell_NotifyIconW(NIM_ADD, &nid);
+    bool result = Shell_NotifyIconW(NIM_ADD, &nid);
+    if (result)
+    {
+        s_bTrayCreated = true;
+    }
+    return result;
 }
 
 /**
@@ -226,4 +232,40 @@ LRESULT CALLBACK SystemTray::TrayWndProc(HWND hWnd, UINT message, WPARAM wParam,
     }
     
     return 0;
+}
+
+/**
+ * @brief 清理系统托盘资源
+ * 
+ * 删除托盘图标，销毁菜单和窗口，释放相关资源
+ */
+void SystemTray::Cleanup()
+{
+    // 删除托盘图标
+    if (s_bTrayCreated && s_hWnd)
+    {
+        NOTIFYICONDATAW nid = {};
+        nid.cbSize = sizeof(NOTIFYICONDATAW);
+        nid.hWnd = s_hWnd;
+        nid.uID = 1;
+        Shell_NotifyIconW(NIM_DELETE, &nid);
+        s_bTrayCreated = false;
+    }
+    
+    // 销毁菜单
+    if (s_hMenu)
+    {
+        DestroyMenu(s_hMenu);
+        s_hMenu = nullptr;
+    }
+    
+    // 销毁窗口
+    if (s_hWnd)
+    {
+        DestroyWindow(s_hWnd);
+        s_hWnd = nullptr;
+    }
+    
+    // 注销窗口类
+    UnregisterClassW(L"YunsioTrayWindow", GetModuleHandleW(nullptr));
 }

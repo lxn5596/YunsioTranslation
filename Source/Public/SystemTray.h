@@ -24,6 +24,13 @@ public:
      * 该函数协调整个托盘创建流程，调用各个子功能函数
      */
     static bool CreateTray();
+    
+    /**
+     * @brief 清理系统托盘资源
+     * 
+     * 删除托盘图标，销毁菜单和窗口，释放相关资源
+     */
+    static void Cleanup();
 
 private:
     /**
