@@ -11,6 +11,12 @@
 - **异步翻译**: 非阻塞式翻译，不影响其他操作
 - **内存优化**: 采用RAII设计模式，自动管理资源，防止内存泄漏
 
+- **运行资源占用**:
+  - 硬盘：58KB左右
+  - 内存: 2MB左右
+  - CPU: 1%以下
+  - 网络: 0.5MB/s左右(仅翻译时产生)
+
 ## 📋 系统要求
 
 - **操作系统**: Windows 10/11
@@ -81,7 +87,7 @@
 
 1. **克隆项目**
    ```bash
-   git clone <repository-url>
+   git clone <https://github.com/lxn5596/YunsioTranslation.git>
    cd YunsioTranslation
    ```
 
@@ -133,9 +139,10 @@
 
 在 `TranslationService.cpp` 中配置API参数：
 
+API获取地址：[阿里云百炼](https://bailian.console.aliyun.com/?spm=5176.12818093_47.console-base_search-panel.dtab-product_sfm.60942cc9ZcgdUV&scm=20140722.S_sfm._.ID_sfm-RL_%E7%99%BE%E7%82%BC-LOC_console_console-OR_ser-V_4-P0_0&tab=model#/api-key)
 ```cpp
 // API配置常量
-const wchar_t* TranslationService::API_KEY = L"your-api-key";
+const wchar_t* TranslationService::API_KEY = L"你的阿里百炼API密钥";
 const char* TranslationService::SYSTEM_PROMPT = "翻译系统提示词";
 ```
 
@@ -224,7 +231,31 @@ YunsioTranslation/
 
 ## 📄 许可证
 
-本项目采用 MIT 许可证 - 详见 [LICENSE](LICENSE) 文件
+本项目采用 [MIT 许可证](LICENSE) 开源。
+
+```
+MIT License
+
+Copyright (c) 2024 YunsioTranslation
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
 
 ## 🤝 贡献指南
 
@@ -240,8 +271,9 @@ YunsioTranslation/
 
 如有问题或建议，请通过以下方式联系：
 
-- **项目Issues**: [GitHub Issues](项目地址/issues)
-- **邮箱**: your-email@example.com
+- **项目Issues**: [GitHub Issues](https://github.com/lxn5596/YunsioTranslation/issues)
+- **官网**: [官网地址](https://yunsio.com)
+- **邮箱**: yunsio@yunsio.com
 
 ---
 
