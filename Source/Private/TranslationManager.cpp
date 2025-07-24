@@ -1,5 +1,8 @@
 ﻿#include "TranslationManager.h"
 #include "TranslationService.h"
+#ifdef _DEBUG
+#include <crtdbg.h>
+#endif
 
 // 静态成员变量定义
 bool TranslationManager::s_bInitialized = false;
@@ -319,14 +322,38 @@ bool TranslationManager::PasteText()
  */
 void TranslationManager::OnTranslationComplete(bool success, const std::wstring& result)
 {
-    // 使用RAII确保状态重置
+    // 使用RAII确保状态重置和资源清理
     struct StateResetter
     {
-        ~StateResetter() { s_bTranslationInProgress = false; }
+        ~StateResetter() 
+        { 
+            s_bTranslationInProgress = false;
+            // 强制垃圾回收，清理可能的内存碎片
+            #ifdef _DEBUG
+            _CrtCheckMemory();
+            #endif
+        }
     } resetter;
     
     if (success && !result.empty())
     {
+        // 备份当前剪切板内容以便后续恢复
+        std::wstring originalClipboard;
+        GetClipboardText(originalClipboard);
+        
+        // 使用RAII确保剪切板内容最终恢复
+        struct ClipboardRestorer
+        {
+            std::wstring original;
+            ClipboardRestorer(const std::wstring& orig) : original(orig) {}
+            ~ClipboardRestorer() 
+            {
+                // 延迟恢复原始剪切板内容，确保粘贴操作完成
+                Sleep(200);
+                SetClipboardText(original);
+            }
+        } clipboardRestorer(originalClipboard);
+        
         // 设置翻译结果到剪切板，增加错误处理
         if (SetClipboardText(result))
         {
@@ -347,4 +374,7 @@ void TranslationManager::OnTranslationComplete(bool success, const std::wstring&
             Sleep(100);
         }
     }
+    
+    // 显式清理局部变量，释放内存
+    // 注意：这里不需要手动清理，RAII会自动处理
 }

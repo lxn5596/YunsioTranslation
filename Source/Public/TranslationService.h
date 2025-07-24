@@ -41,9 +41,8 @@ public:
     
 private:
     // API配置常量
-    static const wchar_t* API_URL;
     static const wchar_t* API_KEY;
-    static const wchar_t* MODEL_NAME;
+    static const char* SYSTEM_PROMPT;
     
     /**
      * @brief 解析JSON响应获取翻译结果
