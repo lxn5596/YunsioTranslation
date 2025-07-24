@@ -81,7 +81,7 @@
 
 1. **克隆项目**
    ```bash
-   git clone <repository-url>
+   git clone <https://github.com/lxn5596/YunsioTranslation.git>
    cd YunsioTranslation
    ```
 
