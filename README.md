@@ -133,9 +133,10 @@
 
 在 `TranslationService.cpp` 中配置API参数：
 
+API获取地址：[阿里云百炼](https://bailian.console.aliyun.com/?spm=5176.12818093_47.console-base_search-panel.dtab-product_sfm.60942cc9ZcgdUV&scm=20140722.S_sfm._.ID_sfm-RL_%E7%99%BE%E7%82%BC-LOC_console_console-OR_ser-V_4-P0_0&tab=model#/api-key)
 ```cpp
 // API配置常量
-const wchar_t* TranslationService::API_KEY = L"your-api-key";
+const wchar_t* TranslationService::API_KEY = L"你的阿里百炼API密钥";
 const char* TranslationService::SYSTEM_PROMPT = "翻译系统提示词";
 ```
 
@@ -240,8 +241,8 @@ YunsioTranslation/
 
 如有问题或建议，请通过以下方式联系：
 
-- **项目Issues**: [GitHub Issues](项目地址/issues)
-- **邮箱**: your-email@example.com
+- **项目Issues**: [GitHub Issues](https://github.com/lxn5596/YunsioTranslation.git/issues)
+- **邮箱**: yunsio@yunsio.com
 
 ---
 
