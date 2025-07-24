@@ -1,0 +1,4 @@
+# Visual Studio 生成的文件
+.vs/
+# 编译输出目录
+Build/
