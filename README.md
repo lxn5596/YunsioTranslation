@@ -241,7 +241,8 @@ YunsioTranslation/
 
 如有问题或建议，请通过以下方式联系：
 
-- **项目Issues**: [GitHub Issues](https://github.com/lxn5596/YunsioTranslation.git/issues)
+- **项目Issues**: [GitHub Issues](https://github.com/lxn5596/YunsioTranslation.git)
+- **官网**: [官网地址](https://yunsio.com)
 - **邮箱**: yunsio@yunsio.com
 
 ---
